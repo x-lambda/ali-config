@@ -1,0 +1,8 @@
+.idea
+ali-config
+coverage.out
+*.DS_Store
+vendor
+rpc/**/*.md
+*.sw[op]
+log/*
