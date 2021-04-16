@@ -6,7 +6,7 @@
 基于官方提供的`go-sdk`
 > `https://github.com/nacos-group/nacos-sdk-go`
 
-#### 无加密版
+#### 无加密版`https://github.com/x-lambda/ali-config/tree/main/conf`
 1. 现在阿里云上创建对应的资源
 ![img](./imgs/WX20210416-112736@2x.png)
 
@@ -20,7 +20,8 @@ $ export ALI_CONFIG_ACCESS_KEY=""
 $ export ALI_CONFIG_SECRET_KEY=""
 ```
 
-#### 加密版
+#### 加密版`https://github.com/x-lambda/ali-config/tree/main/confx`
+TODO: 解密
 
 ### 使用
 ```shell

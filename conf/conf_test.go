@@ -10,7 +10,8 @@ import (
 	"github.com/stretchr/testify/assert"
 )
 
-func TestViperConf(t *testing.T) {
+func init() {
+	// TODO patch
 	monkey.Patch(getConfig, func() (cli client.IConfigClient, content string) {
 		return
 	})
@@ -18,7 +19,9 @@ func TestViperConf(t *testing.T) {
 
 	monkey.Patch(onConfigChange, func(cli client.IConfigClient) {})
 	defer monkey.Unpatch(onConfigChange)
+}
 
+func TestViperConf(t *testing.T) {
 	viper.SetConfigType("toml")
 	data := `
 a = 1

@@ -72,12 +72,14 @@ func init() {
 	//}
 
 	cli, content := getConfig()
-	c.viper = viper.New()
+	logger().Infof("init with config: %s\n", content)
+
+	c = Conf{viper: viper.New()}
+	c.viper.SetConfigType("toml")
 	err := c.viper.ReadConfig(bytes.NewReader([]byte(content)))
 	if err != nil {
 		panic(err)
 	}
-	logger().Infof("init with config: %s", content)
 
 	go onConfigChange(cli)
 }
@@ -130,13 +132,13 @@ func onConfigChange(cli client.IConfigClient) {
 		// 监听文件变更
 		OnChange: func(ns, g, did, data string) {
 			// fmt.Println("config changed group:" + group + ", dataId:" + dataId + ", content:" + data)
-			logger().Infof("[conf][listen] namespace: %s, dataId: %s, group: %s, on change: %s",
+			logger().Infof("[conf][listen] namespace: %s, dataId: %s, group: %s, on change: %s\n",
 				ns, did, g, data)
 
 			// 修改配置
 			err := c.viper.ReadConfig(bytes.NewReader([]byte(data)))
 			if err != nil {
-				logger().Errorf("[ali-config][ListenConfig] err: %+v", err)
+				logger().Errorf("[ali-config][ListenConfig] err: %+v\n", err)
 			}
 		},
 	})
