@@ -12,12 +12,19 @@
 
 2. 将对应的资源配置写到环境变量中
 ```shell
-$ export ali_config_endpoint=""
-$ export ali_config_namespace_id=""
-$ export ali_config_access_key=""
-$ export ali_config_secret_key=""
-$ export ali_config_data_id=""
-$ export ali_config_group=""
+$ export ALI_CONFIG_ENDPOINT=""
+$ export ALI_CONFIG_NAMESPACE_ID=""
+$ export ALI_CONFIG_DATA_ID=""
+$ export ALI_CONFIG_GROUP=""
+$ export ALI_CONFIG_ACCESS_KEY=""
+$ export ALI_CONFIG_SECRET_KEY=""
+```
+
+#### 加密版
+
+### 使用
+```shell
+$ go get -u github.com/x-lambda/ali-config
 ```
 
 
