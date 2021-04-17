@@ -81,13 +81,17 @@ func kmsDecrypt(accessKey, secretKey, content string) (text string, err error) {
 	request.CiphertextBlob = content
 	request.ConnectTimeout = 1 * time.Minute
 
+	fmt.Println("accessKey: ", accessKey)
+	fmt.Println("secretKey: ", secretKey)
+
 	// TODO regionId?
-	kc, err := kms.NewClientWithAccessKey("acm", accessKey, secretKey)
+	kc, err := kms.NewClientWithAccessKey("cn-hangzhou", accessKey, secretKey)
 	if err != nil {
 		return
 	}
 
 	resp, err := kc.Decrypt(request)
+	fmt.Println(resp)
 	if err != nil {
 		return
 	}
@@ -145,7 +149,7 @@ func getConfig() (cli client.IConfigClient, content string) {
 		Endpoint:            endpoint + ":8080",
 		LogDir:              "",
 		CacheDir:            "",
-		//OpenKMS:             false,
+		OpenKMS:             true,
 	}
 
 	var err error
