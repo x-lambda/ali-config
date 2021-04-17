@@ -7,7 +7,7 @@ import (
 	"syscall"
 	"time"
 
-	"github.com/x-lambda/ali-config/conf"
+	conf "github.com/x-lambda/ali-config/confx"
 )
 
 func main() {

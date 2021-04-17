@@ -1,12 +1,14 @@
-package conf
+package confx
 
 import (
-	"bytes"
+	"fmt"
 	"os"
 	"strconv"
 	"strings"
 	"time"
+	"unsafe"
 
+	"github.com/aliyun/alibaba-cloud-sdk-go/services/kms"
 	"github.com/nacos-group/nacos-sdk-go/clients"
 	client "github.com/nacos-group/nacos-sdk-go/clients/config_client"
 	"github.com/nacos-group/nacos-sdk-go/common/constant"
@@ -53,8 +55,6 @@ var (
 	Zone = "sh001"
 )
 
-// var path string // 配置文件所在目录
-
 var endpoint string    // os.Getenv("ALI_CONFIG_ENDPOINT")
 var namespaceId string // os.Getenv("ALI_CONFIG_NAMESPACE_ID")
 var accessKey string   // os.Getenv("ALI_CONFIG_ACCESS_KEY")
@@ -69,51 +69,60 @@ type Conf struct {
 var c Conf
 
 func init() {
-	Hostname, _ = os.Hostname()
-	if appID := os.Getenv("APP_ID"); appID != "" {
-		AppID = appID
-	} else {
-		logger().Warn("env APP_ID is empty")
-	}
-
-	if env := os.Getenv("DEPLOY_ENV"); env != "" {
-		Env = env
-	} else {
-		logger().Warn("env DEPLOY_ENV is empty")
-	}
-
-	if zone := os.Getenv("ZONE"); zone != "" {
-		Zone = zone
-	} else {
-		logger().Warn("env ZONE is empty")
-	}
-
-	//path = os.Getenv("CONF_PATH")
-	//if path == "" {
-	//	logger().Warn("env CONF_PATH is empty")
-	//	var err error
-	//	if path, err = os.Getwd(); err != nil {
-	//		panic(err)
-	//	}
-	//	logger().WithField("path", path).Info("use default conf path")
-	//}
-
-	cli, content := getConfig()
-	logger().Infof("init with config: %s\n", content)
-
-	c = Conf{viper: viper.New()}
-	c.viper.SetConfigType("toml")
-	err := c.viper.ReadConfig(bytes.NewReader([]byte(content)))
-	if err != nil {
-		panic(err)
-	}
-
-	go onConfigChange(cli)
+	getConfig()
 }
 
-// getConfig 首次启动进程时，获取配置文件信息
+// kmsDecrypt kms解密 content：密文内容
+func kmsDecrypt(accessKey, secretKey, content string) (text string, err error) {
+	request := kms.CreateDecryptRequest()
+	request.Method = "POST"
+	request.Scheme = "https"
+	request.AcceptFormat = "json"
+	request.CiphertextBlob = content
+	request.ConnectTimeout = 1 * time.Minute
+
+	// TODO regionId?
+	kc, err := kms.NewClientWithAccessKey("acm", accessKey, secretKey)
+	if err != nil {
+		return
+	}
+
+	resp, err := kc.Decrypt(request)
+	if err != nil {
+		return
+	}
+
+	text = resp.Plaintext
+	return
+}
+
+// sliceHeader is the runtime representation of a slice.
+// It should be identical to reflect.sliceHeader
+type sliceHeader struct {
+	data     unsafe.Pointer
+	sliceLen int
+	sliceCap int
+}
+
+// stringHeader is the runtime representation of a string.
+// It should be identical to reflect.StringHeader
+type stringHeader struct {
+	data      unsafe.Pointer
+	stringLen int
+}
+
+// ByteToString unsafely converts b into a string.
+// If you modify b, then s will also be modified. This violates the
+// property that strings are immutable.
+func ByteToString(b []byte) (s string) {
+	sliceHeader := (*sliceHeader)(unsafe.Pointer(&b))
+	stringHeader := (*stringHeader)(unsafe.Pointer(&s))
+	stringHeader.data = sliceHeader.data
+	stringHeader.stringLen = len(b)
+	return s
+}
+
 func getConfig() (cli client.IConfigClient, content string) {
-	// 阿里云acm配置
 	endpoint = os.Getenv("ALI_CONFIG_ENDPOINT")
 	if endpoint == "" {
 		endpoint = PublicAddr // 公网测试
@@ -150,37 +159,20 @@ func getConfig() (cli client.IConfigClient, content string) {
 	if err != nil {
 		panic(err)
 	}
+	fmt.Println(content)
 
-	return
-}
-
-// onConfigChange 监听文件的变更
-func onConfigChange(cli client.IConfigClient) {
-	err := cli.ListenConfig(vo.ConfigParam{
-		DataId: dataID,
-		Group:  group,
-		// 监听文件变更
-		OnChange: func(ns, g, did, data string) {
-			// fmt.Println("config changed group:" + group + ", dataID:" + dataID + ", content:" + data)
-			logger().Infof("[conf][listen] namespace: %s, dataID: %s, group: %s, on change: %s\n",
-				ns, did, g, data)
-
-			if len(data) == 0 {
-				logger().Warn("[conf][listen] config change is empty")
-				return
-			}
-
-			// 修改配置
-			err := c.viper.ReadConfig(bytes.NewReader([]byte(data)))
-			if err != nil {
-				logger().Errorf("[ali-config][ListenConfig] err: %+v\n", err)
-			}
-		},
-	})
-
-	if err != nil {
-		panic(err)
+	body := ByteToString([]byte(content))
+	switch {
+	case strings.HasPrefix(dataID, "cipher-kms-aes-128-"):
+	case strings.HasPrefix(dataID, "cipher-"):
+		cs, err := kmsDecrypt(accessKey, secretKey, body)
+		if err != nil {
+			panic(err)
+		}
+		fmt.Println("解密后的数据: ", cs)
+	default:
 	}
+	return
 }
 
 var levels = map[string]logrus.Level{

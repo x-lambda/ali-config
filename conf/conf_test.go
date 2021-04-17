@@ -57,5 +57,5 @@ d = "***"
 }
 
 func TestConf(t *testing.T) {
-	// mock
+	// monkey init
 }
